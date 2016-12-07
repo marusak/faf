@@ -17,6 +17,7 @@ class SummaryTestCase(WebfafTestCase):
         self.basic_fixtures()
 
         self.save_report("ureport_f20")
+        self.call_action("create-problems")
 
         self.db.session.commit()
 

@@ -161,4 +161,38 @@ $(document).ready(function() {
       $('#advanced-filters').removeClass('hide');
       $(this).addClass('hide');
     });
+
+    function updateQueryStringParameter(uri, key, value) {
+      var re = new RegExp("([?&])" + key + "=.*?(&|$)", "i");
+      var separator = uri.indexOf('?') !== -1 ? "&" : "?";
+      if (uri.match(re)) {
+        return uri.replace(re, '$1' + key + "=" + value + '$2');
+      }
+      else {
+        return uri + separator + key + "=" + value;
+      }
+    }
+
+    $("a[order]").click(function(e) {
+      e.preventDefault();
+      var params = window.location.search
+      var dest = updateQueryStringParameter(params, 'order_by', $(this).attr('order'));
+      var dest = $(this).attr('href') + updateQueryStringParameter(dest, 'offset', '0');
+      window.location.href = dest;
+    });
+
+    $("a[resolution]").click(function(e) {
+      e.preventDefault();
+      var params = window.location.search
+      var dest = updateQueryStringParameter(params, 'resolution', $(this).attr('resolution'));
+      var dest = $(this).attr('href') + updateQueryStringParameter(dest, 'offset', '0');
+      window.location.href = dest;
+    });
+
+    $("a[rel~='keep-params']").click(function(e) {
+      e.preventDefault();
+      var params = window.location.search;
+      var dest = $(this).attr('href') + updateQueryStringParameter(params, 'offset', '0');
+      window.location.href = dest;
+    });
 });

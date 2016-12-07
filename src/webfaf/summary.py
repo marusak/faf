@@ -11,10 +11,11 @@ summary = Blueprint("summary", __name__)
 from webfaf_main import db, flask_cache
 from forms import SummaryForm, component_names_to_ids
 from utils import date_iterator
+from reports import get_reports
+from utils import Pagination
 
-
-def index_plot_data_cache(summary_form):
-    key = summary_form.caching_key()
+def index_plot_data_cache(filter_form):
+    key = filter_form.caching_key()
 
     cached = flask_cache.get(key)
     if cached is not None:
@@ -22,15 +23,17 @@ def index_plot_data_cache(summary_form):
 
     reports = []
 
+    pg = Pagination(request)
+    all_reports = get_reports(filter_form, pg)
+    all_reports_ids = [report.id for report in all_reports]
+
     hist_table, hist_field = get_history_target(
-        summary_form.resolution.data)
+        filter_form.resolution.data)
 
-    component_ids = component_names_to_ids(summary_form.component_names.data)
+    (since_date, to_date) = filter_form.daterange.data
 
-    (since_date, to_date) = summary_form.daterange.data
-
-    if summary_form.opsysreleases.data:
-        opsysreleases = summary_form.opsysreleases.data
+    if filter_form.opsysreleases.data:
+        opsysreleases = filter_form.opsysreleases.data
     else:
         opsysreleases = (
             db.session.query(OpSysRelease)
@@ -47,9 +50,8 @@ def index_plot_data_cache(summary_form):
 
         counts = counts.filter(hist_table.opsysrelease_id == osr.id)
 
-        if component_ids:
-            counts = (counts.join(Report)
-                            .filter(Report.component_id.in_(component_ids)))
+        counts = (counts.join(Report)
+                        .filter(Report.id.in_(all_reports_ids)))
 
         counts = (counts.filter(hist_field >= since_date)
                         .filter(hist_field <= to_date))
@@ -57,7 +59,7 @@ def index_plot_data_cache(summary_form):
         counts = counts.all()
 
         dates = set(date_iterator(since_date,
-                                  summary_form.resolution.data,
+                                  filter_form.resolution.data,
                                   to_date))
 
         for time, count in counts:
@@ -69,7 +71,7 @@ def index_plot_data_cache(summary_form):
 
     cached = render_template("summary/index_plot_data.html",
                              reports=reports,
-                             resolution=summary_form.resolution.data[0])
+                             resolution=filter_form.resolution.data[0])
 
     flask_cache.set(key, cached, timeout=60*60)
     return cached
@@ -77,16 +79,16 @@ def index_plot_data_cache(summary_form):
 
 @summary.route("/")
 def index():
-    summary_form = SummaryForm(request.args)
+    filter_form = SummaryForm(request.args)
     reports = []
-    if summary_form.validate():
+    if filter_form.validate():
 
-        index_plot_data = index_plot_data_cache(summary_form)
+        index_plot_data = index_plot_data_cache(filter_form)
         return render_template("summary/index.html",
-                               summary_form=summary_form,
+                               filter_form=filter_form,
                                index_plot_data=index_plot_data)
 
     return render_template("summary/index.html",
-                           summary_form=summary_form,
+                           filter_form=filter_form,
                            reports=reports,
-                           resolution=summary_form.resolution.data[0])
+                           resolution=filter_form.resolution.data[0])

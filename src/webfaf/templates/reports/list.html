@@ -4,33 +4,70 @@
 
 {% block title %}Reports{% endblock %}
 
-{% block body %}
-<div class="row">
-    <div class="col-md-12">
-      <div id="report-filter" class="well">
+
+{% block global_filter %}
+      <div id="problem-filter" class="well">
         <form class="form-inline" method="GET">
             {{ render_field(filter_form.opsysreleases, class="multiselect") }}
             {{ render_field(filter_form.component_names, placeholder="Components", class="component-names") }}
             {{ render_field(filter_form.associate, class="multiselect-filtered-dynamic hidden") }}
-            {{ render_field(filter_form.arch, class="multiselect") }}
+            {{ render_field(filter_form.daterange, class="form-control daterange") }}
             {{ render_field(filter_form.type, class="multiselect") }}
-            <div class="showlabel separated">
-                <div>
-                    <label for="solution" style="margin-right: 10px;">Solution</label>
-                    {{ filter_form.solution }}
-                </div>
+            {{ render_field(filter_form.arch, class="multiselect") }}
+            {% if filter_form.exclude_taintflags.data
+                  or filter_form.function_names.data or filter_form.binary_names.data
+                  or filter_form.source_file_names.data
+                  or filter_form.since_version.data or filter_form.since_release.data
+                  or filter_form.to_version.data or filter_form.to_release.data
+                  or filter_form.probable_fix_osrs.data
+                  or filter_form.solution.data
+                  or filter_form.bug_filter.data != "None" %}
+              <div id="advanced-filters" class="separated">
+            {% else %} 
+              <a href="#" id="show-advanced-filters" class="btn btn-default"><i class="fa fa-caret-right"></i> Advanced filters</a>
+              <div id="advanced-filters" class="separated hide">
+            {% endif %}
               <div>
-              {{ render_field(filter_form.first_occurrence_daterange, class="form-control daterange") }}
+                {{ render_field(filter_form.exclude_taintflags, class="multiselect") }}
+                {{ render_field(filter_form.probable_fix_osrs, class="multiselect") }}
+                {{ render_field(filter_form.bug_filter, class="multiselect") }}
               </div>
               <div>
-              {{ render_field(filter_form.last_occurrence_daterange, class="form-control daterange") }}
+                {{ render_field(filter_form.function_names, placeholder="Functions") }}
+                {{ render_field(filter_form.binary_names, placeholder="Binaries/Modules") }}
+                {{ render_field(filter_form.source_file_names, placeholder="Source files") }}
+                <p class="text-muted">Comma acts as OR, you can use % as a wildcard, at least one backtrace where all three fields are satisfied must exist to show the problem</p>
               </div>
               <div>
-              {{ render_field(filter_form.order_by) }}
-              <button class="btn btn-primary" type="submit">Query</button>
+                {{ render_field(filter_form.since_version, placeholder="Since version") }}
+                {{ render_field(filter_form.since_release, placeholder="Since release") }}
+                {{ render_field(filter_form.to_version, placeholder="To version") }}
+                {{ render_field(filter_form.to_release, placeholder="To release") }}
+
+                <p class="text-muted">Version range</p>
+              </div>
+              <div style="margin-bottom: 5px; padding: inherit">
+                  <label for="solution" style="margin-right: 10px; display: inline";>Solution</label>
+                  {{ filter_form.solution }}
+              </div>
+              <div style="display:none;">
+                {{ render_field(filter_form.order_by) }}
               </div>
             </div>
+            <button class="btn btn-primary" type="submit">Query</button>
         </form>
+      </div>
+
+{% endblock %}
+
+
+{% block body %}
+<div class="row">
+    <div class="col-md-12">
+      <div class="well">
+	Each "report" is a group of crashes. Crash contains information about system when the crash happened and backtrace. When incoming crash has identical backtrace as some already-processed report, they are 	   considered to be reporting the same crash.
+	<br>
+	Click on ID of report to learn about occurrences on different operating systems and platforms and to see backtrace.
       </div>
       <div id="report-list">
         <table class="table table-striped table-bordered table-condensed">

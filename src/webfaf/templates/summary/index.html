@@ -15,19 +15,62 @@
 <script src="{{ url_for('static', filename='js/report_graph.js')}}"></script>
 {% endblock js %}
 
-{% block body %}
-<div class="row">
-    <div class="col-md-12">
-      <div id="summary-filter" class="well">
-        <form id="summary_form" class="form-inline" method="GET">
-            {{ render_field(summary_form.opsysreleases, class="multiselect") }}
-            {{ render_field(summary_form.component_names, placeholder="Components", class="component-names") }}
-            {{ render_field(summary_form.daterange, class="form-control daterange") }}
-            {{ render_field(summary_form.resolution) }}
-            <button class="btn btn-primary" type="submit">Show</button>
+{% block global_filter %}
+      <div id="problem-filter" class="well">
+        <form class="form-inline" method="GET">
+            {{ render_field(filter_form.opsysreleases, class="multiselect") }}
+            {{ render_field(filter_form.component_names, placeholder="Components", class="component-names") }}
+            {{ render_field(filter_form.associate, class="multiselect-filtered-dynamic hidden") }}
+            {{ render_field(filter_form.daterange, class="form-control daterange") }}
+            {{ render_field(filter_form.type, class="multiselect") }}
+            {{ render_field(filter_form.arch, class="multiselect") }}
+            {% if filter_form.exclude_taintflags.data
+                  or filter_form.function_names.data or filter_form.binary_names.data
+                  or filter_form.source_file_names.data
+                  or filter_form.since_version.data or filter_form.since_release.data
+                  or filter_form.to_version.data or filter_form.to_release.data
+                  or filter_form.probable_fix_osrs.data
+                  or filter_form.solution.data
+                  or filter_form.bug_filter.data != "None" %}
+              <div id="advanced-filters" class="separated">
+            {% else %} 
+              <a href="#" id="show-advanced-filters" class="btn btn-default"><i class="fa fa-caret-right"></i> Advanced filters</a>
+              <div id="advanced-filters" class="separated hide">
+            {% endif %}
+              <div>
+                {{ render_field(filter_form.exclude_taintflags, class="multiselect") }}
+                {{ render_field(filter_form.probable_fix_osrs, class="multiselect") }}
+                {{ render_field(filter_form.bug_filter, class="multiselect") }}
+              </div>
+              <div>
+                {{ render_field(filter_form.function_names, placeholder="Functions") }}
+                {{ render_field(filter_form.binary_names, placeholder="Binaries/Modules") }}
+                {{ render_field(filter_form.source_file_names, placeholder="Source files") }}
+                <p class="text-muted">Comma acts as OR, you can use % as a wildcard, at least one backtrace where all three fields are satisfied must exist to show the problem</p>
+              </div>
+              <div>
+                {{ render_field(filter_form.since_version, placeholder="Since version") }}
+                {{ render_field(filter_form.since_release, placeholder="Since release") }}
+                {{ render_field(filter_form.to_version, placeholder="To version") }}
+                {{ render_field(filter_form.to_release, placeholder="To release") }}
+                <p class="text-muted">Version range</p>
+              </div>
+              <div style="display:none;">
+                {{ render_field(filter_form.resolution) }}
+              </div>
+              <div style="margin-bottom: 5px; padding: inherit">
+                  <label for="solution" style="margin-right: 10px; display: inline";>Solution</label>
+                  {{ filter_form.solution }}
+              </div>
+            </div>
+            <button class="btn btn-primary" type="submit">Query</button>
         </form>
       </div>
-    </div>
+
+{% endblock %}
+
+{% block body %}
+<div class="row">
     <div class="col-md-12">
         <div id="placeholder"></div>
         {% if index_plot_data %}

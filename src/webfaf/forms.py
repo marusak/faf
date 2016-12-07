@@ -230,15 +230,9 @@ class ReportFilterForm(Form):
 
     component_names = TextField()
 
-    first_occurrence_daterange = DaterangeField(
-        "First occurrence",
-        validators=[validators.Optional()],
-        default_days=None)
-
-    last_occurrence_daterange = DaterangeField(
-        "Last occurrence",
-        validators=[validators.Optional()],
-        default_days=None)
+    daterange = DaterangeField(
+        "Date range",
+        default_days=14)
 
     associate = associate_select
 
@@ -246,7 +240,42 @@ class ReportFilterForm(Form):
 
     type = type_multiselect
 
+
+    exclude_taintflags = QuerySelectMultipleField(
+        "Exclude taintflags",
+        query_factory=lambda: (db.session.query(KernelTaintFlag)
+                               .order_by(KernelTaintFlag.character)
+                               .all()),
+        get_pk=lambda a: a.id, get_label=lambda a: "{0} {1}".format(a.character, a.ureport_name))
+
+    function_names = TagListField()
+    binary_names = TagListField()
+    source_file_names = TagListField()
+
+    since_version = TextField()
+    since_release = TextField()
+
+    to_version = TextField()
+    to_release = TextField()
+
     solution = solution_checkbox
+
+    probable_fix_osrs = QuerySelectMultipleField(
+        "Probably fixed in",
+        query_factory=lambda: (db.session.query(OpSysRelease)
+                               .filter(OpSysRelease.status != "EOL")
+                               .order_by(OpSysRelease.releasedate)
+                               .all()),
+        get_pk=lambda a: a.id, get_label=lambda a: str(a))
+
+    bug_filter = SelectField("Bug status", validators=[validators.Optional()],
+                             choices=[
+        ("None", "Any bug status"),
+        ("HAS_BUG", "Has a bug"),
+        ("NO_BUGS", "No bugs"),
+        ("HAS_OPEN_BUG", "Has an open bug"),
+        ("ALL_BUGS_CLOSED", "All bugs closed")
+    ])
 
     order_by = SelectField("Order by", choices=[
         ("last_occurrence", "Last occurrence"),
@@ -263,11 +292,21 @@ class ReportFilterForm(Form):
             associate,
             tuple(self.arch.data or []),
             tuple(self.type.data or []),
+            tuple(self.exclude_taintflags.data or []),
             tuple(sorted(self.component_names.data or [])),
-            tuple(self.first_occurrence_daterange.data or []),
-            tuple(self.last_occurrence_daterange.data or []),
+            tuple(self.daterange.data or []),
+            tuple(sorted(self.opsysreleases.data or [])),
+            tuple(sorted(self.function_names.data or [])),
+            tuple(sorted(self.binary_names.data or [])),
+            tuple(sorted(self.source_file_names.data or [])),
+            tuple(sorted(self.since_version.data or [])),
+            tuple(sorted(self.since_release.data or [])),
+            tuple(sorted(self.to_version.data or [])),
+            tuple(sorted(self.to_release.data or [])),
+            tuple(sorted(self.probable_fix_osrs.data or [])),
+            tuple(sorted(self.bug_filter.data or [])),
             tuple(self.order_by.data or []),
-            tuple(sorted(self.opsysreleases.data or []))))).hexdigest()
+            ))).hexdigest()
 
 
 class SummaryForm(Form):
@@ -285,12 +324,74 @@ class SummaryForm(Form):
         ("m", "monthly")],
         default="d")
 
+    associate = associate_select
+
+    arch = arch_multiselect
+
+    type = type_multiselect
+
+    order_by = TextField()
+
+    exclude_taintflags = QuerySelectMultipleField(
+        "Exclude taintflags",
+        query_factory=lambda: (db.session.query(KernelTaintFlag)
+                               .order_by(KernelTaintFlag.character)
+                               .all()),
+        get_pk=lambda a: a.id, get_label=lambda a: "{0} {1}".format(a.character, a.ureport_name))
+
+    function_names = TagListField()
+    binary_names = TagListField()
+    source_file_names = TagListField()
+
+    since_version = TextField()
+    since_release = TextField()
+
+    to_version = TextField()
+    to_release = TextField()
+
+    solution = solution_checkbox
+
+    probable_fix_osrs = QuerySelectMultipleField(
+        "Probably fixed in",
+        query_factory=lambda: (db.session.query(OpSysRelease)
+                               .filter(OpSysRelease.status != "EOL")
+                               .order_by(OpSysRelease.releasedate)
+                               .all()),
+        get_pk=lambda a: a.id, get_label=lambda a: str(a))
+
+    bug_filter = SelectField("Bug status", validators=[validators.Optional()],
+                             choices=[
+        ("None", "Any bug status"),
+        ("HAS_BUG", "Has a bug"),
+        ("NO_BUGS", "No bugs"),
+        ("HAS_OPEN_BUG", "Has an open bug"),
+        ("ALL_BUGS_CLOSED", "All bugs closed")
+    ])
+
     def caching_key(self):
-        return sha1("SummaryForm" + str((
+        associate = ()
+        if self.associate.data:
+            associate = (self.associate.data)
+
+        return sha1("SummaryFilterForm" + str((
+            associate,
             tuple(self.resolution.data or []),
+            tuple(self.arch.data or []),
+            tuple(self.type.data or []),
+            tuple(self.exclude_taintflags.data or []),
             tuple(sorted(self.component_names.data or [])),
             tuple(self.daterange.data or []),
-            tuple(sorted(self.opsysreleases.data or []))))).hexdigest()
+            tuple(sorted(self.opsysreleases.data or [])),
+            tuple(sorted(self.function_names.data or [])),
+            tuple(sorted(self.binary_names.data or [])),
+            tuple(sorted(self.source_file_names.data or [])),
+            tuple(sorted(self.since_version.data or [])),
+            tuple(sorted(self.since_release.data or [])),
+            tuple(sorted(self.to_version.data or [])),
+            tuple(sorted(self.to_release.data or [])),
+            tuple(sorted(self.probable_fix_osrs.data or [])),
+            tuple(sorted(self.bug_filter.data or [])),
+            ))).hexdigest()
 
 
 class BacktraceDiffForm(Form):

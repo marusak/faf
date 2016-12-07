@@ -73,15 +73,10 @@ reports = Blueprint("reports", __name__)
 from webfaf_main import db, flask_cache, app
 from forms import (ReportFilterForm, NewReportForm, NewAttachmentForm,
                    component_names_to_ids, AssociateBzForm)
+from problems import get_problems
 
 
-def query_reports(db, opsysrelease_ids=[], component_ids=[],
-                  associate_id=None, arch_ids=[], types=[],
-                  first_occurrence_since=None, first_occurrence_to=None,
-                  last_occurrence_since=None, last_occurrence_to=None,
-                  limit=None, offset=None, order_by="last_occurrence",
-                  solution=None):
-
+def get_reports(filter_form, pagination):
     comp_query = (db.session.query(Report.id.label("report_id"),
                                    OpSysComponent.name.label("component"))
                     .join(ReportOpSysRelease)
@@ -94,6 +89,7 @@ def query_reports(db, opsysrelease_ids=[], component_ids=[],
                           .distinct(Report.id)
                           .subquery())
 
+    order_by=filter_form.order_by.data or "first_occurrence"
     final_query = (db.session.query(Report.id,
                                     Report.first_occurrence.label(
                                         "first_occurrence"),
@@ -108,103 +104,27 @@ def query_reports(db, opsysrelease_ids=[], component_ids=[],
                    .join(bt_query, Report.id == bt_query.c.report_id)
                    .order_by(desc(order_by)))
 
-    if opsysrelease_ids:
-        osr_query = (
-            db.session.query(ReportOpSysRelease.report_id.label("report_id"))
-            .filter(ReportOpSysRelease.opsysrelease_id.in_(opsysrelease_ids))
-            .distinct(ReportOpSysRelease.report_id)
-            .subquery())
-        final_query = final_query.filter(Report.id == osr_query.c.report_id)
+    limit = pagination.limit
+    offset = pagination.offset
+    pagination.limit = 0
+    pagination.offset = 0
 
-    if component_ids:
-        final_query = final_query.filter(
-            Report.component_id.in_(component_ids))
+    problems = get_problems(filter_form, pagination)
 
-    if arch_ids:
-        arch_query = (db.session.query(ReportArch.report_id.label("report_id"))
-                        .filter(ReportArch.arch_id.in_(arch_ids))
-                        .distinct(ReportArch.report_id)
-                        .subquery())
-        final_query = final_query.filter(Report.id == arch_query.c.report_id)
+    pagination.limit = limit
+    pagination.offset = offset
 
-    if associate_id:
-        assoc_query = (
-            db.session.query(
-                OpSysReleaseComponent.components_id.label("components_id"))
-            .join(OpSysReleaseComponentAssociate)
-            .filter(OpSysReleaseComponentAssociate.associatepeople_id ==
-                    associate_id)
-            .distinct(OpSysReleaseComponent.components_id)
-            .subquery())
+    reports = []
+    for problem in problems:
+        for report in problem.reports:
+            reports.append(report.id)
 
-        final_query = final_query.filter(
-            Report.component_id == assoc_query.c.components_id)
-
-    if types:
-        final_query = final_query.filter(Report.type.in_(types))
-
-    if first_occurrence_since:
-        final_query = final_query.filter(
-            Report.first_occurrence >= first_occurrence_since)
-    if first_occurrence_to:
-        final_query = final_query.filter(
-            Report.first_occurrence <= first_occurrence_to)
-
-    if last_occurrence_since:
-        final_query = final_query.filter(
-            Report.last_occurrence >= last_occurrence_since)
-    if last_occurrence_to:
-        final_query = final_query.filter(
-            Report.last_occurrence <= last_occurrence_to)
-
-    if solution:
-        if not solution.data:
-            final_query = final_query.filter(or_(Report.max_certainty < 100, Report.max_certainty.is_(None)))
-
+    final_query = final_query.filter(Report.id.in_(reports))
     if limit > 0:
         final_query = final_query.limit(limit)
     if offset >= 0:
         final_query = final_query.offset(offset)
-
     return final_query.all()
-
-
-def get_reports(filter_form, pagination):
-    opsysrelease_ids = [
-        osr.id for osr in (filter_form.opsysreleases.data or [])]
-
-    component_ids = component_names_to_ids(filter_form.component_names.data)
-
-    if filter_form.associate.data:
-        associate_id = filter_form.associate.data.id
-    else:
-        associate_id = None
-    arch_ids = [arch.id for arch in (filter_form.arch.data or [])]
-
-    types = filter_form.type.data or []
-
-    r = query_reports(
-        db,
-        opsysrelease_ids=opsysrelease_ids,
-        component_ids=component_ids,
-        associate_id=associate_id,
-        arch_ids=arch_ids,
-        types=types,
-        first_occurrence_since=filter_form.first_occurrence_daterange.data
-        and filter_form.first_occurrence_daterange.data[0],
-        first_occurrence_to=filter_form.first_occurrence_daterange.data
-        and filter_form.first_occurrence_daterange.data[1],
-        last_occurrence_since=filter_form.last_occurrence_daterange.data
-        and filter_form.last_occurrence_daterange.data[0],
-        last_occurrence_to=filter_form.last_occurrence_daterange.data
-        and filter_form.last_occurrence_daterange.data[1],
-        limit=pagination.limit,
-        offset=pagination.offset,
-        order_by=filter_form.order_by.data,
-        solution=filter_form.solution)
-
-    return r
-
 
 def reports_list_table_rows_cache(filter_form, pagination):
     key = ",".join((filter_form.caching_key(),
