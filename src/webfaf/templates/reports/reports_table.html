@@ -1,0 +1,81 @@
+{% macro reports_table(reports) %}
+    {% if reports %}
+      <noscript>
+        <p>WARNING!! This page is using JavaScript to filter and sort the table.</p>
+      </noscript>
+      <input id="archive-checkbox" type="checkbox" name="show-archived" value="archived"> Show archived<br>
+      <table class="table datatable table-striped table-bordered table-condensed">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Component</th>
+            <th>Count</th>
+            <th>Crash function</th>
+            <th>Status</th>
+            <th>Type</th>
+            <th>Last occurrence</th>
+            <th>First occurrence</th>
+          </tr>
+        </thead>
+        </tbody>
+            {%- for report in reports %}
+              <tr>
+                <td data-order="{{ report.id }}"><a href="{{ url_for('reports.item', report_id=report.id)}}">{{report.id}}</a></td>
+                <td>{{ report.component }}</td>
+                <td>{{ report.count|readable_int }}</td>
+                <td>
+                    {% if report.crashfn %}
+                      {{ report.crashfn }}
+                    {% else %}
+                      {{ report.crash_function }}
+                    {% endif %}
+                </td>
+                {% if not report.archived %}
+                    <td><span class='label label-info'>{% if report.problem_id %}processed{% else %}new{% endif %}</span></td>
+                {% else %}
+                    <td><span class='label label-warning'>archived</span></td>
+                {% endif %}
+                <td><span class='label label-default'>{{report.type}}</span></td>
+                <td>{{report.last_occurrence.strftime("%Y-%m-%d")}}</td>
+                <td>{{report.first_occurrence.strftime("%Y-%m-%d")}}</td>
+            </tr>
+            {%- endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <h3>No data to display</h3>
+    {% endif %}
+
+    <script>
+      // Filter of archived reports
+      $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+        var state = $('#archive-checkbox').is(':checked');
+        var row_status = data[4];
+        if (state == true) return true;
+        if (row_status != 'archived') return true;
+        return false;
+      });
+
+      // Initialize Datatable
+      $(document).ready(function() {
+        var table = $('.datatable').removeAttr('width').DataTable({
+          'columnDefs': [
+            {orderable: false, targets: [1, 3, 4, 5]}, {
+              class: 'col-1-of-12',
+              targets: [0, 2, 4, 5],
+              class: 'col-2-of-12',
+              targets: [6, 7],
+              class: 'col-3-of-12',
+              targets: [1, 3],
+            }
+          ],
+          'order': [[0, 'desc']],
+          'autoWidth': false,
+          'drawCallback': function() {
+            $('.paginate_button').addClass('btn btn-default');
+          }
+        });
+        $('#archive-checkbox').change(function() { table.draw(); });
+      });
+    </script>
+{% endmacro %}
