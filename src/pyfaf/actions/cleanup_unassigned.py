@@ -23,13 +23,14 @@ from pyfaf.storage.report import ReportPackage
 from pyfaf.storage.problem import ProblemOpSysRelease
 from pyfaf.storage.llvm import LlvmBuild, LlvmBcFile, LlvmResultFile
 
-class CleanupUnassigned(Action):
-    name = "cleanup-unassigned"
+class CleanupAmarok(Action):
+    name = "cleanup-amarok"
 
     def run(self, cmdline, db):
         # find all build, that are not assigned to any opsysrelease
         all_opsysrelases = db.session.query(BuildOpSysReleaseArch.build_id).distinct()
         all_builds = (db.session.query(Build)
+                      .filter(Build.base_package_name == 'amarok')
                       .filter(~Build.id.in_(all_opsysrelases))
                       .yield_per(1000))
 
