@@ -27,7 +27,7 @@ from pyfaf.queries import (get_problems,
                            get_report_by_id,
                            get_reports_by_type,
                            remove_problem_from_low_count_reports_by_type)
-from pyfaf.storage import Problem, ProblemComponent, Report
+from pyfaf.storage import Problem, ProblemComponent, Report, SatyrReport
 
 
 class HashableSet(set):
@@ -301,14 +301,29 @@ class CreateProblems(Action):
                 self.log_debug("[{0} / {1}] Loading report #{2}"
                                .format(i, len(db_reports), db_report.id))
 
-                _satyr_report = problemplugin._db_report_to_satyr(db_report)
-                if _satyr_report is None:
-                    self.log_debug("Unable to create satyr report")
-                    if db_report.problem_id is not None:
-                        invalid_report_ids_to_clean.append(db_report.id)
-                else:
+                sreport = (db.session.query(SatyrReport)
+                           .filter(SatyrReport.report_id == db_report.id)
+                           .first())
+                if sreport:
+                    _satyr_report = sreport.get_pickled_lob("sreport")
                     _satyr_reports.append(_satyr_report)
                     report_map[_satyr_report] = db_report
+                else:
+                    _satyr_report = problemplugin._db_report_to_satyr(db_report)
+                    if _satyr_report is None:
+                        self.log_debug("Unable to create satyr report")
+                        if db_report.problem_id is not None:
+                            invalid_report_ids_to_clean.append(db_report.id)
+                    else:
+                        new = SatyrReport()
+                        new.report_id = db_report.id
+                        db.session.add(new)
+                        db.session.flush()
+
+                        new.save_pickled_lob("sreport", _satyr_report)
+
+                        _satyr_reports.append(_satyr_report)
+                        report_map[_satyr_report] = db_report
 
                 db.session.expire(db_report)
 

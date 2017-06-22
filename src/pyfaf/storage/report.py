@@ -507,6 +507,18 @@ class ReportMantis(GenericTable):
         return self.mantisbug
 
 
+class SatyrReport(GenericTable):
+    """A table for saved satyr reports."""
+    __tablename__ = "satyrreports"
+    __lobs__ = {"sreport": 1 << 32}
+
+    id = Column(Integer, primary_key=True)
+    report_id = Column(Integer,
+                       ForeignKey("{0}.id".format(Report.__tablename__)),
+                       index=True,
+                       nullable=False)
+
+
 class ReportRaw(GenericTable):
     __tablename__ = "reportraw"
     __lobs__ = { "ureport": 1 << 32, }

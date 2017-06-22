@@ -18,6 +18,7 @@
 
 # pylint: disable=E1101
 import errno
+import cPickle as pickle
 import os
 from pyfaf.common import FafError, log
 from pyfaf.config import config
@@ -96,6 +97,15 @@ class GenericTableBase(object):
 
         return result
 
+    def get_pickled_lob(self, name):
+        lobpath = self.get_lob_path(name)
+
+        if not os.path.isfile(lobpath):
+            return None
+
+        with open(lobpath, 'rb') as lob:
+            return pickle.load(lob)
+
     def get_lob_fd(self, name, binary=True):
         lobpath = self.get_lob_path(name)
 
@@ -131,6 +141,15 @@ class GenericTableBase(object):
                 buf = buf[:(read - maxlen)]
             dest.write(buf)
             buf = src.read(bufsize)
+
+    def save_pickled_lob(self, name, data, overwrite=False):
+        lobpath = self.get_lob_path(name)
+
+        if not overwrite and os.path.isfile(lobpath):
+            raise FafError("Lob '{0}' already exists".format(name))
+
+        with open(lobpath, 'wb') as lob:
+            pickle.dump(data, lob, pickle.HIGHEST_PROTOCOL)
 
     def save_lob(self, name, data, binary=True, overwrite=False, truncate=False):
         lobpath = self.get_lob_path(name)
