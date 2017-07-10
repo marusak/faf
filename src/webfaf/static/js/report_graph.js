@@ -109,7 +109,7 @@ function plotReportGraph(data, tick_unit) {
     });
     $("#placeholder").bind("plotclick", function (event, pos, item) {
         if(!item) return;
-        
+
         // Get OpSysReleas id from the data label
         var $options = $("#opsysreleases option");
         var opsysrelease_id = false;
@@ -120,7 +120,12 @@ function plotReportGraph(data, tick_unit) {
                 break;
             }
         }
-        
+
+        var component_names = window.location.search.match(
+            new RegExp("(\\?|&)component_names(\\[\\])?=([^&]*)")
+        );
+        component_names = component_names ? component_names[3] : false;
+
         var date_since = moment(item.datapoint[0]);
         var date_since_string = date_since.format("YYYY-MM-DD");
         var date_to_string = date_since_string;
@@ -129,10 +134,11 @@ function plotReportGraph(data, tick_unit) {
         } else if(minTickSizeLabel == "month") {
             date_to_string = date_since.add("months", 1).format("YYYY-MM-DD");
         }
-        
+
         var url=$("#href_problems").attr("href")
             +"?opsysreleases="+opsysrelease_id
-            +"&daterange="+date_since_string+":"+date_to_string;
+            +"&daterange="+date_since_string+":"+date_to_string
+            +"&component_names="+component_names;
 
         window.location = url;
         return;
