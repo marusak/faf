@@ -24,11 +24,17 @@ COPY docker/files/run_faf /usr/bin
 
 RUN sed -i -e"s/CreateComponents\s*=\s*False/CreateComponents = True/i" /etc/faf/faf.conf && \
     sed -i -e"s/type\s*=\s*simple/type = null/i" /etc/faf/plugins/web.conf && \
+    rm -rf /run/httpd && mkdir /run/httpd && chmod -R a+rwx /run/httpd && \
+    sed -i -e"s/Listen\s*80/Listen 8080/i" /etc/httpd/conf/httpd.conf && \
+    sed -i -e"s/ErrorLog\s*\"logs\/error_log\"/ErrorLog \"\/var\/log\/faf\/httpd_error_log\"/i" /etc/httpd/conf/httpd.conf && \
+    sed -i -e"s/CustomLog\s*\"logs\/access_log\"/CustomLog \"\/var\/log\/faf\/httpd_access_log\"/i" /etc/httpd/conf/httpd.conf && \
     echo "cron = -5 -1 -1 -1 -1 faf save-reports -v" >> /etc/uwsgi.ini && \
     echo "cron =  0 -5 -1 -1 -1 faf create-problems" >> /etc/uwsgi.ini && \
     chown faf:faf /run/uwsgi/
 
 VOLUME /var/spool/faf
 
-EXPOSE 80
+USER faf
+
+EXPOSE 8080
 CMD ["sh", "-c", "run_faf"]
