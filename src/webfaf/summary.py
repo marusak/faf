@@ -10,7 +10,7 @@ summary = Blueprint("summary", __name__)
 
 from webfaf_main import db, flask_cache
 from forms import SummaryForm, component_names_to_ids
-from utils import date_iterator
+from pyfaf.utils.date import date_iterator
 
 
 def index_plot_data_cache(summary_form):
