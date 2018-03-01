@@ -478,6 +478,8 @@ Base for Fedmsg support.
 Summary: %{name}'s support for realtime Fedmsg notification sending
 Requires: %{name} = %{faf_version}
 Requires: %{name}-fedmsg = %{faf_version}
+Requires: esmtp
+Requires: postfix
 
 %description fedmsg-realtime
 Support for sending Fedmsg notifications as reports are saved.
@@ -985,6 +987,7 @@ fi
 
 %files fedmsg-realtime
 %{python_sitelib}/pyfaf/storage/events_fedmsg.py*
+%{python_sitelib}/pyfaf/storage/events_email.py*
 
 %files celery-tasks
 %config(noreplace) %{_sysconfdir}/faf/plugins/celery_tasks.conf
