@@ -10,6 +10,7 @@ storage_PYTHON = \
     debug.py \
     events.py \
     events_fedmsg.py \
+    events_email.py \
     externalfaf.py \
     jsontype.py \
     llvm.py \

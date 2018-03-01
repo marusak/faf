@@ -269,6 +269,7 @@ class YieldQueryAdaptor:
 
 
 import events
+import events_email
 # Optional fedmsg-realtime plugin
 try:
     import events_fedmsg
