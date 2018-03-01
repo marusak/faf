@@ -38,6 +38,9 @@ def receive_after_insert(mapper, connection, target):
         txt += "Crash function: {0}\n".format(target.crash_function)
         txt += "URL: {0}\n".format(web.reverse("problems.item", problem_id=target.id))
 
+        with open("/var/spool/faf/msg", "w") as f:
+            f.write(txt)
+
         msg = MIMEText(txt)
 
         msg['From'] = "abrt@faf"
