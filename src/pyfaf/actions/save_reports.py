@@ -24,6 +24,7 @@ import glob
 import hashlib
 import signal
 import sys
+import subprocess
 
 from pyfaf.actions import Action
 from pyfaf.common import FafError, ensure_dirs
@@ -194,7 +195,7 @@ class SaveReports(Action):
 
             self._move_report_to_saved(fname)
 
-    def _save_reports_speedup(self, db):
+    def _save_reports_speedup(self, db, n=0):
         self.log_info("Saving reports (--speedup)")
 
         # This creates a lock file and only works on file modified between the
@@ -202,6 +203,34 @@ class SaveReports(Action):
         # be run while the older is still running.
 
         now = time.time()
+        # If we want to process only last n reports
+        if n > 0:
+            # Find newest lock
+            locks = glob.glob(os.path.join(self.dir_report_incoming,
+                                           ".sr-speedup-*.lock"))
+            newest_time = 0
+            newest_lock = None
+            for lock in locks:
+                stat = os.stat(lock)
+                if stat.st_ctime > newest_time:
+                    newest_time = stat.st_ctime
+                    newest_lock = lock
+
+            # Count n reports from the given time
+            nl = ""
+            if newest_lock:
+                nl = "-newer {0}".format(newest_lock)
+            p = ("find {0} -type f ! -name \".*\" {1} -printf \"%T@ %p\n\" | sort -n | head -n {2} | tail -n 1"
+                 .format(self.dir_report_incoming, nl, n))
+
+            ps = subprocess.Popen(p, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            fname = ps.communicate()[0].split("\n")[0].split()[1]
+            try:
+                stat = os.stat(fname)
+                now = stat.st_mtime
+            except:
+                return # Was not able to find anything to lock
+
         lock_name = ".sr-speedup-{0}-{1}.lock".format(os.getpid(),
                                                       int(now))
 
@@ -352,7 +381,10 @@ class SaveReports(Action):
         if not cmdline.no_reports:
             if cmdline.speedup:
                 try:
-                    self._save_reports_speedup(db)
+                    if cmdline.n:
+                        self._save_reports_speedup(db, cmdline.n)
+                    else:
+                        self._save_reports_speedup(db)
                 except:
                     self.log_debug("Uncaught exception. Removing lock {0}"
                                    .format(self.lock_filename))
@@ -372,3 +404,6 @@ class SaveReports(Action):
         parser.add_argument("--speedup", action="store_true",
                             default=False, help="Speedup the processing. "
                             "May be less accurate.")
+        parser.add_argument("-n", type=int,
+                            default=False, help="Process up to n reports. "
+                            "Only with speedup action")
