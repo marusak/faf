@@ -154,6 +154,10 @@ class GenericTableBase(object):
                     raise FafError("When saving from file, truncate must be enabled")
 
                 self._save_lob_file(lob, data, maxlen)
+            elif isinstance(data, (bytes, bytearray)):
+                if not binary:
+                    raise FafError("When saving bytes, binary must be enabled")
+                lob.write(data)
             else:
                 raise FafError("Data must be either str, unicode or file-like object")
 

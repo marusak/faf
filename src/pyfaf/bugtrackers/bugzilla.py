@@ -627,7 +627,7 @@ class Bugzilla(BugTracker):
             # save_lob is inherited method which cannot
             # be seen by pylint because of sqlalchemy magic
             # pylint: disable=E1101
-            new.save_lob("content", comment["text"].encode("utf-8"),
+            new.save_lob("content", comment["text"].encode('utf-8'),
                          overwrite=True)
 
         db.session.flush()
