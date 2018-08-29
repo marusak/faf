@@ -39,6 +39,7 @@ class Config(object):
     THROTTLING_RATE = int(config.get("throttle.rate", 1))
     THROTTLING_TIMEFRAME = int(config.get("throttle.timeframe", 30))
     THROTTLING_BURST = int(config.get("throttle.burst", 1))
+    SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 
 class ProductionConfig(Config):
